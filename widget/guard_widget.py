@@ -1,5 +1,5 @@
 """
-CopilotGuard tray widget (Windows).
+FlySolo tray widget (Windows).
 
   * Tray icon: green = all quiet, red = something new happened, gray = checking
   * Click the icon for a window with the guard log and current status
@@ -28,7 +28,7 @@ from PIL import Image, ImageDraw
 VERSION = "0.1.0"
 
 # ------------------------------------------------------------------ paths & settings
-ROOT = os.path.join(os.environ.get("ProgramData", r"C:\ProgramData"), "CopilotGuard")
+ROOT = os.path.join(os.environ.get("ProgramData", r"C:\ProgramData"), "FlySolo")
 LOG_FILE = os.path.join(ROOT, "guard.log")
 STATUS_FILE = os.path.join(ROOT, "status.json")
 CONFIG_FILE = os.path.join(ROOT, "config.json")
@@ -39,7 +39,7 @@ CHECK_EVERY_MIN = 15
 TAIL_LINES = 300
 DEFAULT_PATTERNS = ["*Microsoft.Copilot*", "*Microsoft.Windows.Ai.Copilot*"]
 
-STATE_DIR = os.path.join(os.environ.get("LOCALAPPDATA", os.path.expanduser("~")), "CopilotGuard")
+STATE_DIR = os.path.join(os.environ.get("LOCALAPPDATA", os.path.expanduser("~")), "FlySolo")
 STATE_FILE = os.path.join(STATE_DIR, "widget-state.json")
 CREATE_NO_WINDOW = 0x08000000
 
@@ -157,7 +157,7 @@ class GuardWidget:
         self.timer = None
 
         self.root = tk.Tk()
-        self.root.title(f"CopilotGuard {VERSION}")
+        self.root.title(f"FlySolo {VERSION}")
         self.root.geometry("780x440")
         self.root.protocol("WM_DELETE_WINDOW", self.root.withdraw)
         self.root.withdraw()
@@ -182,7 +182,7 @@ class GuardWidget:
             pystray.MenuItem("Check now", lambda: self.q.put(("check",))),
             pystray.MenuItem("Quit", lambda: self.q.put(("quit",))),
         )
-        self.icon = pystray.Icon("CopilotGuard", ICONS["unknown"], "CopilotGuard: starting", menu)
+        self.icon = pystray.Icon("FlySolo", ICONS["unknown"], "FlySolo: starting", menu)
         self.icon.run_detached()
 
         self.root.after(200, self.pump)
@@ -245,7 +245,7 @@ class GuardWidget:
         if alerts:
             self.unread = True
             try:
-                self.icon.notify("\n".join(alerts)[:250], "CopilotGuard")
+                self.icon.notify("\n".join(alerts)[:250], "FlySolo")
             except Exception:  # noqa: BLE001
                 pass
 
@@ -256,11 +256,11 @@ class GuardWidget:
     def update_icon(self):
         s = self.status
         if s is None:
-            self.icon.icon, tip = ICONS["unknown"], "CopilotGuard: checking"
+            self.icon.icon, tip = ICONS["unknown"], "FlySolo: checking"
         elif self.unread or s["packages"] or not s["installed"]:
-            self.icon.icon, tip = ICONS["alert"], "CopilotGuard: needs a look - click to view"
+            self.icon.icon, tip = ICONS["alert"], "FlySolo: needs a look - click to view"
         else:
-            self.icon.icon, tip = ICONS["ok"], f"CopilotGuard: all quiet ({s['time']})"
+            self.icon.icon, tip = ICONS["ok"], f"FlySolo: all quiet ({s['time']})"
         self.icon.title = tip[:127]
 
     def refresh_window(self):
@@ -302,7 +302,7 @@ class GuardWidget:
     # ---- buttons
     def run_guard(self):
         if not os.path.exists(GUARD_PS1):
-            messagebox.showerror("CopilotGuard", f"{GUARD_PS1} not found. Is CopilotGuard installed?")
+            messagebox.showerror("FlySolo", f"{GUARD_PS1} not found. Is FlySolo installed?")
             return
         if run_elevated(GUARD_PS1):
             self.status_var.set("Running guard... will re-check in 20 seconds.")
@@ -310,7 +310,7 @@ class GuardWidget:
 
     def repair(self):
         if not os.path.exists(INSTALL_PS1):
-            messagebox.showerror("CopilotGuard", f"{INSTALL_PS1} not found. Is CopilotGuard installed?")
+            messagebox.showerror("FlySolo", f"{INSTALL_PS1} not found. Is FlySolo installed?")
             return
         if run_elevated(INSTALL_PS1, "-Repair"):
             self.status_var.set("Repairing... will re-check in 45 seconds.")
@@ -334,7 +334,7 @@ class GuardWidget:
 
 def main():
     # one widget per user session
-    ctypes.windll.kernel32.CreateMutexW(None, False, "Local\\CopilotGuardWidget")
+    ctypes.windll.kernel32.CreateMutexW(None, False, "Local\\FlySoloWidget")
     if ctypes.windll.kernel32.GetLastError() == 183:  # ERROR_ALREADY_EXISTS
         sys.exit(0)
     GuardWidget().run()

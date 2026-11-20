@@ -39,30 +39,30 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install pyinstaller pystray pillow
-          python -m PyInstaller --onefile --noconsole --name CopilotGuardWidget widget/guard_widget.py
+          python -m PyInstaller --onefile --noconsole --name FlySoloWidget widget/guard_widget.py
 
       - name: Package release zip
         shell: pwsh
         run: |
-          $pkg = 'package/CopilotGuard'
+          $pkg = 'package/FlySolo'
           New-Item -ItemType Directory $pkg -Force | Out-Null
           Copy-Item install.ps1, uninstall.ps1, guard.ps1, README.md, LICENSE $pkg
-          Copy-Item dist/CopilotGuardWidget.exe $pkg
-          Compress-Archive -Path "$pkg/*" -DestinationPath CopilotGuard.zip -Force
-          (Get-FileHash CopilotGuard.zip -Algorithm SHA256).Hash + '  CopilotGuard.zip' |
-            Out-File CopilotGuard.zip.sha256 -Encoding ascii
+          Copy-Item dist/FlySoloWidget.exe $pkg
+          Compress-Archive -Path "$pkg/*" -DestinationPath FlySolo.zip -Force
+          (Get-FileHash FlySolo.zip -Algorithm SHA256).Hash + '  FlySolo.zip' |
+            Out-File FlySolo.zip.sha256 -Encoding ascii
 
       - uses: actions/upload-artifact@v4
         with:
-          name: CopilotGuard
+          name: FlySolo
           path: |
-            CopilotGuard.zip
-            CopilotGuard.zip.sha256
+            FlySolo.zip
+            FlySolo.zip.sha256
 
       - name: Publish release (tags only)
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            CopilotGuard.zip
-            CopilotGuard.zip.sha256
+            FlySolo.zip
+            FlySolo.zip.sha256

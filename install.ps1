@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-  CopilotGuard installer - removes Microsoft Copilot from Windows 11 and keeps it gone.
+  FlySolo installer - removes Microsoft Copilot from Windows 11 and keeps it gone.
 
 .DESCRIPTION
   1. Removes the Copilot app packages (all users + provisioned)
@@ -52,12 +52,12 @@ if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdenti
     exit 1
 }
 
-$Root        = Join-Path $env:ProgramData 'CopilotGuard'
+$Root        = Join-Path $env:ProgramData 'FlySolo'
 $ConfigFile  = Join-Path $Root 'config.json'
 $BackupFile  = Join-Path $Root 'registry-backup.json'
-$GuardTask   = 'CopilotGuard'
-$WidgetTask  = 'CopilotGuardWidget'
-$RulePrefix  = 'CopilotGuard:'
+$GuardTask   = 'FlySolo'
+$WidgetTask  = 'FlySoloWidget'
+$RulePrefix  = 'FlySolo:'
 $MsPublisher = 'CN=MICROSOFT CORPORATION, O=MICROSOFT CORPORATION, L=REDMOND, S=WASHINGTON, C=US'
 $SourceDir   = $PSScriptRoot
 
@@ -108,7 +108,7 @@ function Set-GuardedValue([string]$Path, [string]$Name, [int]$Value) {
 }
 
 # --------------------------------------------------------------- 1. folder + files
-Write-Step 'Preparing CopilotGuard folder'
+Write-Step 'Preparing FlySolo folder'
 New-Item -ItemType Directory -Path $Root -Force | Out-Null
 # SYSTEM runs scripts from here, so only SYSTEM and Administrators may write; users can read.
 icacls $Root /inheritance:r /grant:r '*S-1-5-18:(OI)(CI)F' '*S-1-5-32-544:(OI)(CI)F' '*S-1-5-32-545:(OI)(CI)RX' | Out-Null
@@ -187,7 +187,7 @@ $principal = New-ScheduledTaskPrincipal -UserId 'S-1-5-18' -LogonType ServiceAcc
 $settings  = New-ScheduledTaskSettingsSet -StartWhenAvailable -AllowStartIfOnBatteries `
     -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Minutes 15)
 Register-ScheduledTask -TaskName $GuardTask -Action $action -Trigger $triggers -Principal $principal `
-    -Settings $settings -Description 'CopilotGuard: removes Microsoft Copilot packages if they reappear.' -Force | Out-Null
+    -Settings $settings -Description 'FlySolo: removes Microsoft Copilot packages if they reappear.' -Force | Out-Null
 Write-Host '  registered (runs at every logon and daily at 3am, catches up if missed)'
 
 # --------------------------------------------------------------- 5. AppLocker (optional)
@@ -208,7 +208,7 @@ if ($AppLocker -ne 'Off') {
         function Add-Rule([string]$Name, [string]$Action, [string]$Publisher, [string]$Product) {
             if ($col.ChildNodes | Where-Object { $_ -is [System.Xml.XmlElement] -and $_.GetAttribute('Name') -eq $Name }) { return }
             [xml]$r = @"
-<FilePublisherRule Id="$([guid]::NewGuid())" Name="$Name" Description="Added by CopilotGuard" UserOrGroupSid="S-1-1-0" Action="$Action">
+<FilePublisherRule Id="$([guid]::NewGuid())" Name="$Name" Description="Added by FlySolo" UserOrGroupSid="S-1-1-0" Action="$Action">
   <Conditions>
     <FilePublisherCondition PublisherName="$Publisher" ProductName="$Product" BinaryName="*">
       <BinaryVersionRange LowSection="0.0.0.0" HighSection="*" />
@@ -228,7 +228,7 @@ if ($AppLocker -ne 'Off') {
         }
         $col.SetAttribute('EnforcementMode', $(if ($AppLocker -eq 'Enforce') { 'Enabled' } else { 'AuditOnly' }))
 
-        $tmp = Join-Path $env:TEMP 'copilotguard-applocker.xml'
+        $tmp = Join-Path $env:TEMP 'flysolo-applocker.xml'
         $x.Save($tmp)
         Set-AppLockerPolicy -XmlPolicy $tmp
         Remove-Item $tmp -Force
@@ -242,18 +242,18 @@ if ($AppLocker -ne 'Off') {
 # --------------------------------------------------------------- 6. tray widget (optional)
 if (-not $NoWidget) {
     Write-Step 'Installing tray widget'
-    $exeSrc = @((Join-Path $SourceDir 'CopilotGuardWidget.exe')) | Where-Object { Test-Path $_ } | Select-Object -First 1
+    $exeSrc = @((Join-Path $SourceDir 'FlySoloWidget.exe')) | Where-Object { Test-Path $_ } | Select-Object -First 1
     $pySrc  = @((Join-Path $SourceDir 'widget\guard_widget.py'), (Join-Path $SourceDir 'guard_widget.py')) |
               Where-Object { Test-Path $_ } | Select-Object -First 1
     $widgetAction = $null
 
     if ($exeSrc) {
         if (-not $sameDir) { Copy-Item $exeSrc $Root -Force }
-        $widgetAction = New-ScheduledTaskAction -Execute (Join-Path $Root 'CopilotGuardWidget.exe')
+        $widgetAction = New-ScheduledTaskAction -Execute (Join-Path $Root 'FlySoloWidget.exe')
     } elseif ($pySrc) {
         $pyw = Get-Command pyw -ErrorAction SilentlyContinue
         if (-not $pyw) {
-            Write-Warning 'No CopilotGuardWidget.exe and no Python launcher (pyw) found. Skipping the widget.'
+            Write-Warning 'No FlySoloWidget.exe and no Python launcher (pyw) found. Skipping the widget.'
         } else {
             if (-not $sameDir) { Copy-Item $pySrc (Join-Path $Root 'guard_widget.py') -Force }
             & py -c 'import pystray, PIL' 2>$null
@@ -272,12 +272,12 @@ if (-not $NoWidget) {
         try {
             $wPrincipal = New-ScheduledTaskPrincipal -GroupId 'S-1-5-32-545' -RunLevel Limited   # BUILTIN\Users
             Register-ScheduledTask -TaskName $WidgetTask -Action $widgetAction -Trigger $t -Principal $wPrincipal `
-                -Settings $wSettings -Description 'CopilotGuard tray widget (read-only status and log viewer).' `
+                -Settings $wSettings -Description 'FlySolo tray widget (read-only status and log viewer).' `
                 -Force -ErrorAction Stop | Out-Null
         } catch {
             $wPrincipal = New-ScheduledTaskPrincipal -GroupId 'BUILTIN\Users' -RunLevel Limited
             Register-ScheduledTask -TaskName $WidgetTask -Action $widgetAction -Trigger $t -Principal $wPrincipal `
-                -Settings $wSettings -Description 'CopilotGuard tray widget (read-only status and log viewer).' -Force | Out-Null
+                -Settings $wSettings -Description 'FlySolo tray widget (read-only status and log viewer).' -Force | Out-Null
         }
         Start-ScheduledTask -TaskName $WidgetTask -ErrorAction SilentlyContinue
         Write-Host '  registered (starts 5 minutes after each logon; started now)'
@@ -285,7 +285,7 @@ if (-not $NoWidget) {
 }
 
 # --------------------------------------------------------------- done
-Write-Host "`nCopilotGuard $Version installed." -ForegroundColor Green
+Write-Host "`nFlySolo $Version installed." -ForegroundColor Green
 Write-Host "Files and logs: $Root"
 Write-Host "Undo everything: & `"$Root\uninstall.ps1`""
 Write-Host 'Restart (or sign out and back in) to finish.'

@@ -1,14 +1,14 @@
 <#
 .SYNOPSIS
-  CopilotGuard uninstaller - removes everything install.ps1 set up and restores
+  FlySolo uninstaller - removes everything install.ps1 set up and restores
   the registry values it changed.
 
 .DESCRIPTION
   - Stops the tray widget and removes both scheduled tasks
-  - Removes only the AppLocker rules CopilotGuard added (others are left alone)
+  - Removes only the AppLocker rules FlySolo added (others are left alone)
   - Restores every registry value from registry-backup.json (deleting ones that
     didn't exist before)
-  - Deletes %ProgramData%\CopilotGuard (unless -KeepLogs)
+  - Deletes %ProgramData%\FlySolo (unless -KeepLogs)
 
   It does NOT reinstall Copilot. If you want it back:
       winget install --id 9NHT9RB2F4HD --source msstore
@@ -30,20 +30,20 @@ if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdenti
     exit 1
 }
 
-$Root       = Join-Path $env:ProgramData 'CopilotGuard'
+$Root       = Join-Path $env:ProgramData 'FlySolo'
 $BackupFile = Join-Path $Root 'registry-backup.json'
-$RulePrefix = 'CopilotGuard:'
+$RulePrefix = 'FlySolo:'
 
 function Write-Step([string]$Text) { Write-Host "`n== $Text ==" -ForegroundColor Cyan }
 
 # --------------------------------------------------------------- widget + tasks
 Write-Step 'Stopping widget and removing scheduled tasks'
-Get-Process -Name 'CopilotGuardWidget' -ErrorAction SilentlyContinue | Stop-Process -Force
+Get-Process -Name 'FlySoloWidget' -ErrorAction SilentlyContinue | Stop-Process -Force
 Get-CimInstance Win32_Process -Filter "Name='pythonw.exe' OR Name='pyw.exe'" -ErrorAction SilentlyContinue |
     Where-Object { $_.CommandLine -like '*guard_widget.py*' } |
     ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
 
-foreach ($task in 'CopilotGuardWidget', 'CopilotGuard') {
+foreach ($task in 'FlySoloWidget', 'FlySolo') {
     if (Get-ScheduledTask -TaskName $task -ErrorAction SilentlyContinue) {
         Unregister-ScheduledTask -TaskName $task -Confirm:$false
         Write-Host "  removed task $task"
@@ -52,7 +52,7 @@ foreach ($task in 'CopilotGuardWidget', 'CopilotGuard') {
 
 # --------------------------------------------------------------- AppLocker rules
 if (Get-Command Get-AppLockerPolicy -ErrorAction SilentlyContinue) {
-    Write-Step 'Removing CopilotGuard AppLocker rules'
+    Write-Step 'Removing FlySolo AppLocker rules'
     [xml]$x = Get-AppLockerPolicy -Local -Xml
     $col = $x.AppLockerPolicy.RuleCollection | Where-Object { $_.Type -eq 'Appx' }
     if ($col) {
@@ -65,7 +65,7 @@ if (Get-Command Get-AppLockerPolicy -ErrorAction SilentlyContinue) {
             if (-not ($col.ChildNodes | Where-Object { $_ -is [System.Xml.XmlElement] })) {
                 $col.SetAttribute('EnforcementMode', 'NotConfigured')
             }
-            $tmp = Join-Path $env:TEMP 'copilotguard-applocker.xml'
+            $tmp = Join-Path $env:TEMP 'flysolo-applocker.xml'
             $x.Save($tmp)
             Set-AppLockerPolicy -XmlPolicy $tmp
             Remove-Item $tmp -Force
@@ -110,6 +110,6 @@ if (Test-Path $Root) {
     }
 }
 
-Write-Host "`nCopilotGuard removed. Copilot was NOT reinstalled; to get it back:" -ForegroundColor Green
+Write-Host "`nFlySolo removed. Copilot was NOT reinstalled; to get it back:" -ForegroundColor Green
 Write-Host '  winget install --id 9NHT9RB2F4HD --source msstore'
 Write-Host 'Restart (or sign out and back in) to finish.'

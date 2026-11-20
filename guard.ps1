@@ -1,15 +1,15 @@
 <#
-  CopilotGuard - guard.ps1
+  FlySolo - guard.ps1
   Removes any Copilot app package that has reappeared. Runs as SYSTEM from the
-  "CopilotGuard" scheduled task (at logon + daily), or elevated from the tray widget.
+  "FlySolo" scheduled task (at logon + daily), or elevated from the tray widget.
 
-  Reads package patterns from %ProgramData%\CopilotGuard\config.json.
+  Reads package patterns from %ProgramData%\FlySolo\config.json.
   Writes:  guard.log    - one line per package removed (or failed)
            status.json  - heartbeat: last run time, counts (read by the widget)
 #>
 $ErrorActionPreference = 'Continue'
 
-$Root       = Join-Path $env:ProgramData 'CopilotGuard'
+$Root       = Join-Path $env:ProgramData 'FlySolo'
 $LogFile    = Join-Path $Root 'guard.log'
 $StatusFile = Join-Path $Root 'status.json'
 $ConfigFile = Join-Path $Root 'config.json'
